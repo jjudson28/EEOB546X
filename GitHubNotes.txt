@@ -1,12 +1,12 @@
 Notes on Chapter 5
 	
 	Version control is important for collaborative and individual projects. 
-git status		#checks status of the repository
+git status #checks status of the repository
 	Branch master is the default branch
-git add			#tracks a certain file in the repository
+git add	#tracks a certain file in the repository
 	There is a staging area that working files must be transferred to before committing them to github
-git commit -m "initial import"		#commits the file to the repository with a note that it is the initial import
--a									#tag added to allow all changes to be staged, then commit command with it will commit all
+git commit -m "initial import" #commits the file to the repository with a note that it is the initial import
+-a	#tag added to allow all changes to be staged, then commit command with it will commit all
 git diff		#shows all changes made to the files that are uncommitted
 	Can change the color of these texts to show where changes were made
 git log			#shows our chain of commits
