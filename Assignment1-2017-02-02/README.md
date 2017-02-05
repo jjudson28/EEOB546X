@@ -70,7 +70,7 @@ The joined data file for maize consists of 1576 columns and 983 rows. The joined
      
 The 40 generated files are in the folder **Results** and the intermediate files are in **Intermediate**. The results files are named either maize... or teosinte... and the 'q' or the '-' denote which punctuation depicts missing information. 
 
-
+`git add Assignment1-2017-02-02` -> `git commit` -> `git push`
 
 
 
