@@ -1,0 +1,149 @@
+---
+title: "Jessica Judson's R Notebook"
+output: html_notebook
+---
+
+```{r}
+setwd("/Users/jessicajudson/Desktop/EEOB546X/Assignment_2")
+```
+
+
+##Data Inspection
+
+**1. Load the files from the Unix assignment into R**
+```{r}
+genotypes <- read.table("fang_et_al_genotypes.txt", header = TRUE, sep="\t", stringsAsFactors = FALSE)
+position <- read.table("snp_position.txt", header = TRUE, fill = TRUE, sep="\t", stringsAsFactors = FALSE)
+```
+  
+
+**2. Inspect the files using various commands**
+```{r}
+file.info("fang_et_al_genotypes.txt")
+file.info("snp_position.txt")
+typeof(genotypes)
+typeof(position)
+class(genotypes)
+class(position)
+colnames(genotypes)
+colnames(position)
+str(genotypes)
+str(position)
+head(genotypes)
+head(position)
+```
+
+
+**3. Results of various descriptive commands are as follows:**  
+
+* File Information:  
+    * fang_et_al_genotypes.txt is a 11051939 byte file  
+    * snp_position.txt is a 82763 byte file
+* genotypes is a data frame with list type, has 2782 observations (rows excluding header) of 986 variables (or columns)  
+* position is a data frame with list type, has 983 observations and 15 variables  
+* genotypes has column names for Sample ID, Group, another ID, and then columns for each of the SNPs  
+* position has column names for SNP ID, marker ID, Chromosome, Position, alternative and multiple positions, amplicon, feature name, gene, type, and some other columns for counts (total of 15)  
+* Based on the head command, genotypes has missing values coded with '?'.
+
+##Data Processing   
+
+**1. Subset the genotype dataframe into two objects, one for maize (ZMMIL, ZMMLR, and ZMMMR) and one for teosinte (ZMPBA, ZMPIL, and ZMPJA)**  
+```{r}
+maizegroup <- c("ZMMIL", "ZMMLR", "ZMMMR")
+teosintegroup <- c("ZMPBA", "ZMPIL", "ZMPJA")
+maizegenotypes <- genotypes[genotypes$Group %in% maizegroup, ]
+teosintegenotypes <- genotypes[genotypes$Group %in% teosintegroup, ]
+```
+
+
+**2. Get rid of extraneous columns in maizegenotypes and teosintegenotypes dataframes (Sample_ID, JG_OTU, and Group). We just want the names of the SNPs and the data.**  
+
+```{r}
+cutmaizegenotypes <- maizegenotypes[,-1:-3]
+cutteosintegenotypes <- teosintegenotypes[,-1:-3]
+```
+
+
+**3. Get rid of extraneous columns in the snp position dataframe (cdv marker ID and everything after position).**  
+
+```{r}
+cutposition <- position[, c("SNP_ID","Chromosome","Position")]
+```
+
+
+**4. Transpose the genotypes dataframes, making sure that the final result is a dataframe**  
+
+```{r}
+transposedmaize <- as.data.frame(t(cutmaizegenotypes))
+transposedteosinte <- as.data.frame(t(cutteosintegenotypes))
+is.data.frame(transposedmaize)
+is.data.frame(transposedteosinte)
+```
+
+
+**5.Sort the genotype and SNP position dataframes by the SNP name, the column that the two files have in common.**  
+
+```{r}
+sortedposition <- cutposition[order(cutposition$SNP_ID),] #sort by SNP_ID
+SNPstransposedmaize <- cbind(SNP_ID = rownames(transposedmaize), transposedmaize) #For the transposed genotype files, we need to create a new column with the SNP IDs and 
+rownames(SNPstransposedmaize) <- NULL #delete the rownames created from transposing the files. That way, we can sort the new column of SNP IDs.
+SNPstransposedteosinte <- cbind(SNP_ID = rownames(transposedteosinte), transposedteosinte)
+rownames(SNPstransposedteosinte) <- NULL
+sortedmaize <- SNPstransposedmaize[order(SNPstransposedmaize$SNP_ID),] #sort by SNP_ID
+sortedteosinte <- SNPstransposedteosinte[order(SNPstransposedteosinte$SNP_ID),] #sort by SNP_ID
+```
+
+
+**6. Join the sortedposition dataframe to each of the genotype dataframes using SNP_ID**
+
+```{r}
+table(sortedposition$SNP_ID %in% sortedmaize$SNP_ID) #check that the rows all line up 
+table(sortedposition$SNP_ID %in% sortedteosinte$SNP_ID)
+joinedmaize <- merge(sortedposition, sortedmaize, by.x="SNP_ID", by.y="SNP_ID") #now merge by the SNP_ID column
+joinedteosinte <- merge(sortedposition, sortedteosinte, by.x="SNP_ID", by.y="SNP_ID")
+```
+
+
+**7. Next, we need to isolate each chromosome and sort by position. For the first 10 files, we need 1 for each chromosome with SNPs ordered by increasing position values and missing data shown by '?'. To do this:**  
+
+```{r}
+orderedmaizeincrease <- joinedmaize[mixedorder(joinedmaize$Position),] #order the dataset by increasing position
+orderedteosinteincrease <- joinedteosinte[mixedorder(joinedteosinte$Position),]
+maizechromosome1q <- orderedmaizeincrease[orderedmaizeincrease$Chromosome == 1,]
+write.table(maizechromosome1q, "maizechromosome1q.txt", sep="\t", row.names = FALSE) #write the dataframe to a tab-delimited text file
+```
+
+**8. I repeated this code for each chromosome. Then I did the same with the teosinte files.**  
+
+```{r}
+teosintechromosome1q <- orderedteosinteincrease[orderedteosinteincrease$Chromosome == 1,]
+write.table(teosintechromosome1q, "teosintechromosome1q.txt", sep="\t", row.names = FALSE)
+```
+
+
+**9. For the next ten files of maize and teosinte with '-' denoting missing values:**
+
+```{r}
+missingvalue <- as.data.frame(lapply(joinedmaize, function(x) {gsub("\\?","-", x)})) #replace missing values with -
+missingvalueteosinte <- as.data.frame(lapply(joinedteosinte, function(x) {gsub("\\?","-", x)}))
+```
+
+
+**10. Sort by decreasing order:**
+
+```{r}
+orderedmaizedecrease <- missingvalue[mixedorder(as.character(missingvalue$Position), decreasing=TRUE),] #order the dataset by decreasing position
+orderedteosintedecrease <- missingvalueteosinte[mixedorder(as.character(missingvalueteosinte$Position), decreasing=TRUE),]
+```
+
+
+**11. Pull out each chromosome and create a file, for both maize and teosinte.**
+
+```{r}
+teosintechromosome1d <- orderedteosintedecrease[orderedteosintedecrease$Chromosome == 1,]
+write.table(teosintechromosome1d, "teosintechromosome1d.txt", sep="\t", row.names = FALSE)
+maizechromosome1d <- orderedmaizedecrease[orderedmaizedecrease$Chromosome == 1,]
+write.table(maizechromosome1d, "maizechromosome1d.txt", sep="\t", row.names = FALSE)
+```
+
+  
