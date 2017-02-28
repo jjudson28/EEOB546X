@@ -1,7 +1,7 @@
 # EEOB546X
-Homework Repository for the BCB/EEOB546X Class
+Homework Repository for the BCB/EEOB546X Class  
 
-Contents:
+Contents:  
 Assignment1-2017-02-02
   * Folder containing files for the Unix Assignment
   
