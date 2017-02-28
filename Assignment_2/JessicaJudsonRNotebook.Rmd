@@ -198,7 +198,7 @@ do(filewriteTD(.))
 
 #Part 2
 
-##SNPs per Chromosome
+##Question 1: SNPs per Chromosome
 ###Graph
 ```{r}
 position <- read.table("snp_position.txt", header = TRUE, fill = TRUE, sep="\t", stringsAsFactors = FALSE) #went back to using the original file
@@ -216,15 +216,50 @@ ggplot(meltedposition) +
 
 ###Which groups contribute most of these SNPs?
 
+**The dataframe graph comes from the next graphing question**
+
 ```{r}
-meltedgraphsummary <- dcast(graphsummary, Group ~SNPStatus, value.var = "SNP_Number")
-colnames(meltedgraphsummary)[4] <- "Missing"
-meltedgraphsummary
+graphsummary2 <- graph %>% 
+  group_by(Group, variable, SNPStatus) %>% 
+  summarise(length(SNPStatus)) #group by Group and SNP status, then total the counts of each different SNP status
+
+colnames(graphsummary2)[4] <- "SNP_Number" #rename column name
 ```
 
-The ZMMLR Group has the most heterozygous individuals across loci.
+**Manipulate the dataframe**
+```{r}
+graphsummary3 <- dcast(graphsummary2, Group + variable ~SNPStatus, value.var = "SNP_Number") #cast the dataframe so that Heterozygous individuals are counted for each locus in each population in a single column
 
-##Missing Data and Amount of Heterozygosity
+colnames(graphsummary3)[5] <- "Missing"
+
+Heterozygosity <- graphsummary3 %>% 
+  group_by(Group, variable) %>% 
+  summarise(length(Heterozygous[!is.na(Heterozygous)])) #calls whether a locus is heterozygous or not for each group
+
+colnames(Heterozygosity)[3] <- "Heterozygous"
+
+Heterozygositysummed <- Heterozygosity %>%
+  group_by(Group) %>%
+  count(Heterozygous) #count the number of loci that are heterozygous for each group
+```
+
+**Graph**
+```{r}
+ggplot(Heterozygositysummed[order(Heterozygositysummed$Heterozygous, decreasing = T),], aes(x=Group, y = n, fill=factor(Heterozygous))) + 
+  geom_bar(stat="identity") + 
+  ggtitle("Number of Heterozygous Loci for each Group") + 
+  labs(x="Group",y="Count") + 
+  theme(legend.title=element_blank(), axis.text.x=element_text(angle = 90, hjust = 0)) +
+  scale_fill_discrete(name="Condition",
+                         breaks=c("1", "0"),
+                         labels=c("Heterozygous", "Homozygous/NA"),
+                         guide = guide_legend(reverse=TRUE))
+```
+
+
+###Based on this graph, the groups that are heterozygous at the most loci include: ZMMLR, ZMPBA, ZMPJA, ZMXCH, ZMXCP. These groups contribute most of the SNPs in the dataset.
+
+##Question 2: Missing Data and Amount of Heterozygosity
 
 ```{r}
 genotypes <- read.table("fang_et_al_genotypes.txt", header = TRUE, sep="\t", stringsAsFactors = FALSE) #reload the genotype file
@@ -260,7 +295,7 @@ ggplot(graphsummary, aes(x=Group, y = SNP_Number, fill=SNPStatus)) +
 ```
 
 
-##Visualize an aspect of my choice: candidate versus random designation across chromosomes
+##Question 3: Visualize an aspect of my choice: candidate versus random designation across chromosomes
 
 ```{r}
 meltedpositionnew <- melt(position, "Chromosome", "candidate.random") #reshape data
