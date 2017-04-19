@@ -13,3 +13,6 @@ Misc
 
 Python_Assignment  
   * Folder containing files for the Python Assignment
+
+Genomic_Ranges_Assignment  
+* Folder containing files for the Genomic Ranges Assignment

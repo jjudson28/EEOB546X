@@ -1,0 +1,88 @@
+---
+title: "Genomic_Ranges_Judson"
+author: "Jessica Judson"
+date: "4/17/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Genomic Ranges Workflow: Extract variants by exons that are represented by genomic ranges
+
+### Set-up
+
+```{r}
+source("http://bioconductor.org/biocLite.R")
+biocLite()
+library(GenomicRanges)
+library(BiocInstaller)
+biocLite("GenomicFeatures")
+biocLite("TxDb.Mmusculus.UCSC.mm10.ensGene")
+library(TxDb.Mmusculus.UCSC.mm10.ensGene)
+library(rtracklayer)
+#set up txdb from previous slides
+txdb <- TxDb.Mmusculus.UCSC.mm10.ensGene
+
+```
+
+### Process to extract variants represented by genomic ranges
+
+1. Load the variant file from the mus musculus chromosome 1 in the Buffalo files
+```{r}
+setwd("~/Desktop/bds-files/chapter-09-working-with-range-data/")
+dbsnp137 <- import('mm10_snp137_chr1_trunc.bed.gz')
+```
+
+2. Collapse the exons and isolate exons from chromosome 1
+```{r}
+collapsed_exons <- reduce(exons(txdb), ignore.strand=TRUE) #collapse overlapping exons
+chr1_collapsed_exons <- collapsed_exons[seqnames(collapsed_exons) == "chr1"] #pull out just the exons of chromosome 1
+```
+
+3. Inspect the variant file from Buffalo
+```{r}
+summary(width(dbsnp137)) #get a summary of the width
+```
+
+4. Resize the width so that variants with length '0' now have length '1'
+```{r}
+dbsnp137_resized <- dbsnp137 #create a duplicate of the variant file to manipulate
+zw_i <- width(dbsnp137_resized) == 0 #pull out all variants with a width of 0 and put them in a new object
+dbsnp137_resized[zw_i] <- resize(dbsnp137_resized[zw_i], width=1) #resize the values in the zw_i object to a width of 1
+```
+
+5. Pull out the variants that overlap with exons on chromosome 1
+```{r}
+hits <- findOverlaps(dbsnp137_resized, chr1_collapsed_exons, 
+        ignore.strand=TRUE) #find the overlaps between the variants that are resized from the previous step and the collapsed strands of exons, without paying attention to which strand of DNA you are looking at
+```
+
+6. Determine the number and proportion of variants that are exonic (within/overlapping exons)
+```{r}
+length(unique(queryHits(hits))) #gives count of exonic variants 
+length(unique(queryHits(hits)))/length(dbsnp137_resized) #gives proportion by dividing by total
+```
+
+7. Find the number of variants per exon
+```{r}
+var_counts <- countOverlaps(chr1_collapsed_exons, dbsnp137_resized, ignore.strand=TRUE)
+#use countOverlaps to compare the exons to the variants
+```
+
+8. Append this to the GRanges object with exons
+```{r}
+chr1_collapsed_exons$num_vars <- var_counts #create a new column called num_vars with variant counts per exon
+```
+
+```{r}
+head(chr1_collapsed_exons)
+```
+
+9. Write this out to a file
+```{r}
+setwd("~/Desktop/EEOB546X/Genomic_Ranges_Assignment/")
+write.table(chr1_collapsed_exons, file = "Number_Variants_per_Exon.txt", row.names = FALSE)
+```
+
